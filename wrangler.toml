@@ -1,0 +1,8 @@
+name = "scmutuals"
+main = "worker.js"
+compatibility_date = "2025-11-27"
+
+# Uncomment to configure custom routes
+# routes = [
+#   { pattern = "example.com/*", zone_name = "example.com" }
+# ]

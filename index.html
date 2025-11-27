@@ -346,11 +346,11 @@
 
     <script>
         const API_BASE = 'https://api-v2.soundcloud.com';
-        // Try multiple CORS proxies
+        // Try multiple CORS proxies (your Cloudflare Worker first, then fallbacks)
         const CORS_PROXIES = [
-            'https://api.allorigins.win/raw?url=',
-            'https://corsproxy.io/?',
-            'https://api.codetabs.com/v1/proxy?quest='
+            'https://scmutuals.n-sander.workers.dev/?url=',
+            'https://thingproxy.freeboard.io/fetch/',
+            'https://api.allorigins.win/raw?url='
         ];
         let proxyIndex = 0;
 
@@ -374,9 +374,15 @@
 
         function showError(message) {
             const resultsEl = document.getElementById('results');
+            const proxyHelp = message.includes('API') || message.includes('network') ? `
+                <br>
+                <div class="output-line warning">note: free CORS proxies may be unreliable</div>
+                <div class="output-line info">consider deploying your own proxy (see worker.js)</div>
+            ` : '';
             resultsEl.innerHTML = `
                 <div class="output-line error">✗ error: ${message}</div>
                 <div class="output-line info">try again or check your input</div>
+                ${proxyHelp}
             `;
             resultsEl.style.display = 'block';
         }
@@ -404,13 +410,23 @@
                     const testResponse = await fetch(getCorsProxy() + encodeURIComponent(testUrl));
 
                     if (testResponse.ok) {
-                        clientId = testId;
-                        fallbackIndex = i;
-                        console.log('Using fallback client_id:', testId.substring(0, 10) + '...');
-                        return clientId;
+                        const text = await testResponse.text();
+                        // Check if response is valid JSON
+                        try {
+                            JSON.parse(text);
+                            clientId = testId;
+                            fallbackIndex = i;
+                            console.log('Using fallback client_id:', testId.substring(0, 10) + '...');
+                            return clientId;
+                        } catch (jsonError) {
+                            console.log('Response not valid JSON, trying next proxy/ID...');
+                            proxyIndex++;
+                            continue;
+                        }
                     }
                 } catch (e) {
-                    console.log('Fallback ID failed, trying next...');
+                    console.log('Fallback ID failed, trying next...', e.message);
+                    proxyIndex++;
                     continue;
                 }
             }
@@ -460,8 +476,13 @@
                         throw new Error('User not found');
                     }
 
-                    const data = await response.json();
-                    return data;
+                    const text = await response.text();
+                    try {
+                        const data = JSON.parse(text);
+                        return data;
+                    } catch (jsonError) {
+                        throw new Error('Invalid response from API');
+                    }
                 } catch (e) {
                     console.log(`Proxy ${proxyIndex} failed, trying next...`, e.message);
                     proxyIndex++;
@@ -490,7 +511,14 @@
                             throw new Error('Failed to fetch followings');
                         }
 
-                        const data = await response.json();
+                        const text = await response.text();
+                        let data;
+                        try {
+                            data = JSON.parse(text);
+                        } catch (jsonError) {
+                            throw new Error('Invalid JSON response from API');
+                        }
+
                         allFollowings = allFollowings.concat(data.collection || []);
                         nextHref = data.next_href;
 
