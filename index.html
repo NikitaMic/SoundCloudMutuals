@@ -450,13 +450,26 @@
         async function resolveUser(username) {
             const cid = await getClientId();
             const url = `${API_BASE}/resolve?url=https://soundcloud.com/${username}&client_id=${cid}`;
-            const response = await fetch(getCorsProxy() + encodeURIComponent(url));
 
-            if (!response.ok) {
-                throw new Error('User not found');
+            // Try with different proxies
+            for (let attempt = 0; attempt < CORS_PROXIES.length; attempt++) {
+                try {
+                    const response = await fetch(getCorsProxy() + encodeURIComponent(url));
+
+                    if (!response.ok) {
+                        throw new Error('User not found');
+                    }
+
+                    const data = await response.json();
+                    return data;
+                } catch (e) {
+                    console.log(`Proxy ${proxyIndex} failed, trying next...`, e.message);
+                    proxyIndex++;
+                    if (attempt === CORS_PROXIES.length - 1) {
+                        throw new Error('User not found or network error');
+                    }
+                }
             }
-
-            return await response.json();
         }
 
         async function getFollowings(userId) {
@@ -465,18 +478,37 @@
             let nextHref = `${API_BASE}/users/${userId}/followings?client_id=${cid}&limit=200`;
 
             while (nextHref) {
-                const response = await fetch(getCorsProxy() + encodeURIComponent(nextHref));
+                let success = false;
+                let lastError = null;
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch followings');
+                // Try with different proxies for this request
+                for (let attempt = 0; attempt < CORS_PROXIES.length; attempt++) {
+                    try {
+                        const response = await fetch(getCorsProxy() + encodeURIComponent(nextHref));
+
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch followings');
+                        }
+
+                        const data = await response.json();
+                        allFollowings = allFollowings.concat(data.collection || []);
+                        nextHref = data.next_href;
+
+                        if (nextHref && !nextHref.includes('client_id')) {
+                            nextHref += `&client_id=${cid}`;
+                        }
+
+                        success = true;
+                        break;
+                    } catch (e) {
+                        console.log(`Proxy ${proxyIndex} failed for followings, trying next...`, e.message);
+                        lastError = e;
+                        proxyIndex++;
+                    }
                 }
 
-                const data = await response.json();
-                allFollowings = allFollowings.concat(data.collection || []);
-                nextHref = data.next_href;
-
-                if (nextHref && !nextHref.includes('client_id')) {
-                    nextHref += `&client_id=${cid}`;
+                if (!success) {
+                    throw new Error('Failed to fetch followings: ' + (lastError?.message || 'Network error'));
                 }
             }
 
