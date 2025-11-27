@@ -4,7 +4,7 @@ Find SoundCloud users by location - available as both a **web app** and **CLI to
 
 ## 🌐 Web Interface (No Installation!)
 
-**Try it now:** [https://yourusername.github.io/soundcloudTiflis](https://yourusername.github.io/soundcloudTiflis)
+**Try it now:** [https://yourusername.github.io/soundcloudTiflis](https://yourusername.github.io/SoundCloudMutuals)
 
 Perfect for non-technical users:
 - ✅ No installation required
