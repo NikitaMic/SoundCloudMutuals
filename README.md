@@ -4,7 +4,7 @@ Find SoundCloud users by location - available as both a **web app** and **CLI to
 
 ## 🌐 Web Interface (No Installation!)
 
-**Try it now:** [https://yourusername.github.io/soundcloudTiflis](https://yourusername.github.io/SoundCloudMutuals)
+**Try it now:** [https://nikitamic.github.io/SoundCloudMutuals](https://nikitamic.github.io/SoundCloudMutuals)
 
 Perfect for non-technical users:
 - ✅ No installation required
@@ -15,8 +15,8 @@ Perfect for non-technical users:
 ## 💻 CLI Installation
 
 ```bash
-git clone https://github.com/yourusername/soundcloudTiflis.git
-cd soundcloudTiflis
+git clone https://github.com/NikitaMic/SoundCloudMutuals.git
+cd SoundCloudMutuals
 ./install.sh
 ```
 
@@ -118,7 +118,7 @@ To deploy the web app on GitHub Pages:
    git init
    git add .
    git commit -m "Initial commit"
-   git remote add origin https://github.com/yourusername/soundcloudTiflis.git
+   git remote add origin https://github.com/NikitaMic/SoundCloudMutuals.git
    git push -u origin main
    ```
 
@@ -129,7 +129,7 @@ To deploy the web app on GitHub Pages:
    - Click Save
 
 3. **Access your app:**
-   - Available at: `https://yourusername.github.io/soundcloudTiflis`
+   - Available at: `https://nikitamic.github.io/SoundCloudMutuals`
 
 The web interface runs 100% client-side - no server needed!
 
