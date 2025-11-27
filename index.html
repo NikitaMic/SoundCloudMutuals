@@ -401,66 +401,106 @@
         async function getClientId() {
             if (clientId) return clientId;
 
-            // Try fallback client IDs first (faster and more reliable)
-            for (let i = fallbackIndex; i < FALLBACK_CLIENT_IDS.length; i++) {
-                try {
-                    const testId = FALLBACK_CLIENT_IDS[i];
-                    // Test if this client ID works
-                    const testUrl = `${API_BASE}/resolve?url=https://soundcloud.com/soundcloud&client_id=${testId}`;
-                    const testResponse = await fetch(getCorsProxy() + encodeURIComponent(testUrl));
+            console.log('Attempting to get valid client_id...');
 
-                    if (testResponse.ok) {
-                        const text = await testResponse.text();
-                        // Check if response is valid JSON
-                        try {
-                            JSON.parse(text);
-                            clientId = testId;
-                            fallbackIndex = i;
-                            console.log('Using fallback client_id:', testId.substring(0, 10) + '...');
-                            return clientId;
-                        } catch (jsonError) {
-                            console.log('Response not valid JSON, trying next proxy/ID...');
+            // Strategy 1: Try extracting fresh client_id from SoundCloud website
+            // This is more reliable than hardcoded fallbacks that expire
+            try {
+                console.log('Extracting fresh client_id from SoundCloud...');
+
+                for (let proxyAttempt = 0; proxyAttempt < CORS_PROXIES.length; proxyAttempt++) {
+                    try {
+                        const currentProxy = CORS_PROXIES[proxyIndex % CORS_PROXIES.length];
+                        console.log(`Trying proxy ${proxyIndex + 1}/${CORS_PROXIES.length}: ${currentProxy.substring(0, 30)}...`);
+
+                        const response = await fetch(currentProxy + encodeURIComponent('https://soundcloud.com'));
+                        if (!response.ok) {
                             proxyIndex++;
                             continue;
                         }
-                    }
-                } catch (e) {
-                    console.log('Fallback ID failed, trying next...', e.message);
-                    proxyIndex++;
-                    continue;
-                }
-            }
 
-            // If fallbacks fail, try extracting from website
-            try {
-                const response = await fetch(getCorsProxy() + encodeURIComponent('https://soundcloud.com'));
-                const html = await response.text();
+                        const html = await response.text();
+                        const scriptUrls = html.match(/<script[^>]+src="([^"]+)"/g) || [];
 
-                const scriptUrls = html.match(/<script[^>]+src="([^"]+)"/g) || [];
+                        for (const scriptTag of scriptUrls) {
+                            const match = scriptTag.match(/src="([^"]+)"/);
+                            if (!match || !match[1].includes('sndcdn.com')) continue;
 
-                for (const scriptTag of scriptUrls) {
-                    const match = scriptTag.match(/src="([^"]+)"/);
-                    if (!match || !match[1].includes('sndcdn.com')) continue;
+                            try {
+                                const scriptResponse = await fetch(currentProxy + encodeURIComponent(match[1]));
+                                const scriptText = await scriptResponse.text();
+                                const clientIdMatch = scriptText.match(/client_id[=:]"([a-zA-Z0-9]{32})"/);
 
-                    try {
-                        const scriptResponse = await fetch(getCorsProxy() + encodeURIComponent(match[1]));
-                        const scriptText = await scriptResponse.text();
-                        const clientIdMatch = scriptText.match(/client_id[=:]"([a-zA-Z0-9]+)"/);
+                                if (clientIdMatch) {
+                                    const extractedId = clientIdMatch[1];
 
-                        if (clientIdMatch) {
-                            clientId = clientIdMatch[1];
-                            console.log('Extracted client_id from website');
-                            return clientId;
+                                    // Verify the extracted ID works
+                                    const testUrl = `${API_BASE}/resolve?url=https://soundcloud.com/soundcloud&client_id=${extractedId}`;
+                                    const testResponse = await fetch(currentProxy + encodeURIComponent(testUrl));
+
+                                    if (testResponse.ok) {
+                                        const text = await testResponse.text();
+                                        try {
+                                            JSON.parse(text);
+                                            clientId = extractedId;
+                                            console.log('✓ Extracted and verified client_id:', extractedId.substring(0, 10) + '...');
+                                            return clientId;
+                                        } catch (e) {
+                                            continue;
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                continue;
+                            }
                         }
+
+                        proxyIndex++;
                     } catch (e) {
+                        console.log('Proxy failed:', e.message);
+                        proxyIndex++;
                         continue;
                     }
                 }
-
-                throw new Error('Could not extract client_id');
             } catch (error) {
-                throw new Error('Failed to get SoundCloud API access. Try again later.');
+                console.log('Extraction strategy failed, trying fallback IDs...');
             }
+
+            // Strategy 2: Try fallback client IDs with all proxies
+            for (let i = fallbackIndex; i < FALLBACK_CLIENT_IDS.length; i++) {
+                const testId = FALLBACK_CLIENT_IDS[i];
+                console.log(`Testing fallback client_id ${i + 1}/${FALLBACK_CLIENT_IDS.length}...`);
+
+                for (let proxyAttempt = 0; proxyAttempt < CORS_PROXIES.length; proxyAttempt++) {
+                    try {
+                        const currentProxy = CORS_PROXIES[proxyIndex % CORS_PROXIES.length];
+                        const testUrl = `${API_BASE}/resolve?url=https://soundcloud.com/soundcloud&client_id=${testId}`;
+                        const testResponse = await fetch(currentProxy + encodeURIComponent(testUrl));
+
+                        if (testResponse.ok) {
+                            const text = await testResponse.text();
+                            try {
+                                JSON.parse(text);
+                                clientId = testId;
+                                fallbackIndex = i;
+                                console.log('✓ Using fallback client_id:', testId.substring(0, 10) + '...');
+                                return clientId;
+                            } catch (jsonError) {
+                                proxyIndex++;
+                                continue;
+                            }
+                        } else {
+                            proxyIndex++;
+                            continue;
+                        }
+                    } catch (e) {
+                        proxyIndex++;
+                        continue;
+                    }
+                }
+            }
+
+            throw new Error('Failed to get valid client_id. SoundCloud may be blocking requests or all proxies are down.');
         }
 
         async function resolveUser(username) {
