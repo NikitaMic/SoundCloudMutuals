@@ -29,6 +29,16 @@
             box-shadow: 0 0 50px rgba(0, 255, 0, 0.1);
         }
 
+        @media (max-width: 768px) {
+            .terminal {
+                max-width: 100%;
+                margin: 0;
+                border: none;
+                border-radius: 0;
+                min-height: 100vh;
+            }
+        }
+
         .terminal-header {
             background: #1a1a1a;
             padding: 8px 12px;
@@ -265,14 +275,57 @@
             color: #00ff00;
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
             body {
-                padding: 10px;
-                font-size: 12px;
+                padding: 0;
+                font-size: 14px;
             }
 
             .terminal-body {
-                padding: 15px;
+                padding: 20px 15px;
+                min-height: calc(100vh - 41px);
+            }
+
+            .terminal-header {
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }
+
+            input {
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 8px 0;
+            }
+
+            button {
+                padding: 12px 24px;
+                font-size: 16px;
+                width: 100%;
+                margin-top: 15px;
+            }
+
+            .result-item {
+                flex-direction: row;
+                gap: 12px;
+            }
+
+            .result-avatar {
+                width: 56px;
+                height: 56px;
+            }
+
+            .result-stats {
+                flex-wrap: wrap;
+                gap: 10px;
+                font-size: 13px;
+            }
+
+            .quick-cmd {
+                display: inline-block;
+                margin: 5px 10px 5px 0;
+                padding: 4px 8px;
+                border: 1px solid #333;
+                background: #111;
             }
         }
     </style>
