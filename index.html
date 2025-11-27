@@ -154,13 +154,24 @@
             background: rgba(0, 255, 0, 0.02);
         }
 
+        .result-avatar-link {
+            flex-shrink: 0;
+        }
+
         .result-avatar {
             width: 48px;
             height: 48px;
             border-radius: 4px;
             border: 1px solid #00ff00;
             object-fit: cover;
-            flex-shrink: 0;
+            display: block;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .result-avatar:hover {
+            border-color: #00ffff;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
         }
 
         .result-content {
@@ -458,8 +469,16 @@
                 `;
 
                 users.forEach((user, index) => {
-                    const name = user.full_name || user.username || user.permalink || 'Unknown';
+                    // Prioritize full_name (display name) over username
+                    const displayName = user.full_name && user.full_name.trim() ? user.full_name : null;
                     const username = user.permalink || user.username || 'unknown';
+
+                    // Show display name if available, otherwise show username
+                    const name = displayName || username;
+
+                    // Only show @username if we're displaying the full_name
+                    const showUsername = displayName && displayName !== username;
+
                     const location = user.city ?
                         (user.country_code ? `${user.city}, ${user.country_code}` : user.city) :
                         'Unknown';
@@ -470,12 +489,14 @@
 
                     html += `
                         <div class="result-item">
-                            <img src="${avatar}" class="result-avatar" alt="${username}">
+                            <a href="${url}" target="_blank" class="result-avatar-link">
+                                <img src="${avatar}" class="result-avatar" alt="${username}">
+                            </a>
                             <div class="result-content">
                                 <div class="result-header">
                                     <span class="result-index">#${index + 1}</span>
                                     <span class="result-name">${name}</span>
-                                    <span class="result-username">@${username}</span>
+                                    ${showUsername ? `<span class="result-username">@${username}</span>` : ''}
                                 </div>
                                 <div class="result-stats">
                                     <span class="result-stat">📍 ${location}</span>
