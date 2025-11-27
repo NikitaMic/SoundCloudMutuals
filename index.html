@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoundCloud Location Filter</title>
+    <title>sc-filter</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <style>
         * {
             margin: 0;
@@ -12,89 +13,168 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff00;
             padding: 20px;
+            font-size: 14px;
+            line-height: 1.6;
         }
 
-        .container {
-            max-width: 800px;
+        .terminal {
+            max-width: 900px;
             margin: 0 auto;
+            background: #000;
+            border: 1px solid #333;
+            box-shadow: 0 0 50px rgba(0, 255, 0, 0.1);
         }
 
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+        .terminal-header {
+            background: #1a1a1a;
+            padding: 8px 12px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2em;
+        .terminal-button {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #333;
         }
 
-        .subtitle {
+        .terminal-button.close { background: #ff5f56; }
+        .terminal-button.minimize { background: #ffbd2e; }
+        .terminal-button.maximize { background: #27c93f; }
+
+        .terminal-title {
+            margin-left: 10px;
             color: #666;
-            margin-bottom: 30px;
-            font-size: 1.1em;
+            font-size: 12px;
         }
 
-        .input-group {
-            margin-bottom: 20px;
+        .terminal-body {
+            padding: 20px;
+            min-height: 400px;
         }
 
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
+        .prompt-line {
+            margin-bottom: 15px;
         }
 
-        input[type="text"] {
-            width: 100%;
-            padding: 12px 16px;
-            font-size: 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            transition: border-color 0.3s;
+        .prompt-symbol {
+            color: #00ff00;
         }
 
-        input[type="text"]:focus {
+        .prompt-path {
+            color: #0088ff;
+        }
+
+        .command {
+            color: #ff00ff;
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            font-family: inherit;
+            font-size: inherit;
             outline: none;
-            border-color: #667eea;
+            width: 100%;
+            padding: 4px 0;
+            border-bottom: 1px solid #222;
+            margin: 8px 0;
+        }
+
+        input::placeholder {
+            color: #444;
         }
 
         button {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            background: transparent;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 8px 20px;
+            font-family: inherit;
+            font-size: inherit;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+            transition: all 0.2s;
         }
 
         button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            background: #00ff00;
+            color: #000;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
         }
 
         button:disabled {
-            opacity: 0.6;
+            opacity: 0.3;
             cursor: not-allowed;
         }
 
+        .output {
+            margin: 15px 0;
+            padding: 10px 0;
+            border-top: 1px solid #222;
+        }
+
+        .output-line {
+            margin: 4px 0;
+        }
+
+        .error {
+            color: #ff5555;
+        }
+
+        .success {
+            color: #00ff00;
+        }
+
+        .info {
+            color: #888;
+        }
+
+        .warning {
+            color: #ffaa00;
+        }
+
+        .result-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 2px solid #00ff00;
+            padding-left: 15px;
+            background: rgba(0, 255, 0, 0.02);
+        }
+
+        .result-item:hover {
+            background: rgba(0, 255, 0, 0.05);
+        }
+
+        .result-name {
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        .result-meta {
+            color: #888;
+            font-size: 13px;
+        }
+
+        .result-link {
+            color: #0088ff;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .result-link:hover {
+            text-decoration: underline;
+        }
+
         .loading {
-            text-align: center;
-            padding: 20px;
-            color: #667eea;
             display: none;
         }
 
@@ -102,172 +182,107 @@
             display: block;
         }
 
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: #00ff00;
+            animation: blink 1s infinite;
+            margin-left: 2px;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
         }
 
-        .error {
-            background: #fee;
-            color: #c33;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .error.active {
-            display: block;
-        }
-
-        .results {
-            display: none;
-        }
-
-        .results.active {
-            display: block;
-        }
-
-        .result-count {
-            font-size: 1.2em;
-            color: #667eea;
-            font-weight: 600;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .user-card {
-            background: #f9f9f9;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 12px;
-            border-left: 4px solid #667eea;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .user-card:hover {
-            transform: translateX(4px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .user-name {
-            font-weight: 600;
-            color: #333;
-            font-size: 1.1em;
-            margin-bottom: 8px;
-        }
-
-        .user-info {
+        .quick-cmd {
             color: #666;
-            font-size: 0.9em;
-            margin: 4px 0;
-        }
-
-        .user-link {
-            color: #667eea;
-            text-decoration: none;
-            font-size: 0.9em;
-            word-break: break-all;
-        }
-
-        .user-link:hover {
-            text-decoration: underline;
-        }
-
-        .no-results {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-
-        .example-links {
-            margin-top: 15px;
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .example-links a {
-            color: #667eea;
             cursor: pointer;
             text-decoration: underline;
+            margin-right: 10px;
         }
 
-        .example-links a:hover {
-            color: #764ba2;
+        .quick-cmd:hover {
+            color: #00ff00;
         }
 
         @media (max-width: 600px) {
-            .card {
-                padding: 20px;
+            body {
+                padding: 10px;
+                font-size: 12px;
             }
 
-            h1 {
-                font-size: 1.5em;
+            .terminal-body {
+                padding: 15px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h1>🎵 SoundCloud Location Filter</h1>
-            <p class="subtitle">Find SoundCloud users by location from a user's followings</p>
+    <div class="terminal">
+        <div class="terminal-header">
+            <div class="terminal-button close"></div>
+            <div class="terminal-button minimize"></div>
+            <div class="terminal-button maximize"></div>
+            <span class="terminal-title">sc-filter — bash — 80x24</span>
+        </div>
 
-            <div class="error" id="error"></div>
+        <div class="terminal-body">
+            <div class="prompt-line">
+                <span class="prompt-symbol">$</span>
+                <span class="command"> sc-filter --help</span>
+            </div>
 
-            <div class="input-group">
-                <label for="username">SoundCloud Username</label>
+            <div class="output-line info">usage: sc-filter [username] [location]</div>
+            <div class="output-line info">find soundcloud users by location from a user's followings</div>
+            <br>
+
+            <div class="prompt-line">
+                <span class="prompt-symbol">$</span>
+                <span class="command"> sc-filter</span>
+            </div>
+
+            <div class="output-line">
+                <label for="username" style="color: #888;">username:</label>
                 <input
                     type="text"
                     id="username"
-                    placeholder="e.g., gloomweaver777"
+                    placeholder="gloomweaver777"
                     value="gloomweaver777"
+                    autocomplete="off"
                 >
-                <div class="example-links">
-                    Try:
-                    <a onclick="setUsername('gloomweaver777')">gloomweaver777</a>
-                </div>
             </div>
 
-            <div class="input-group">
-                <label for="location">Location</label>
+            <div class="output-line">
+                <label for="location" style="color: #888;">location:</label>
                 <input
                     type="text"
                     id="location"
-                    placeholder="e.g., Berlin, Leipzig, Tbilisi"
-                    value="Berlin"
+                    placeholder="Berlin, Leipzig, Tbilisi..."
+                    value="Tbilisi"
+                    autocomplete="off"
                 >
-                <div class="example-links">
-                    Try:
-                    <a onclick="setLocation('Berlin')">Berlin</a>,
-                    <a onclick="setLocation('Leipzig')">Leipzig</a>,
-                    <a onclick="setLocation('Amsterdam')">Amsterdam</a>,
-                    <a onclick="setLocation('Tbilisi')">Tbilisi</a>
-                </div>
             </div>
 
-            <button onclick="search()" id="searchBtn">Search</button>
+            <div class="output-line" style="margin-top: 10px;">
+                <span class="info">quick:</span>
+                <span class="quick-cmd" onclick="quickSearch('Berlin')">Berlin</span>
+                <span class="quick-cmd" onclick="quickSearch('Leipzig')">Leipzig</span>
+                <span class="quick-cmd" onclick="quickSearch('Amsterdam')">Amsterdam</span>
+                <span class="quick-cmd" onclick="quickSearch('Tbilisi')">Tbilisi</span>
+            </div>
+
+            <button onclick="search()" id="searchBtn">[ENTER]</button>
 
             <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>Searching SoundCloud...</p>
+                <div class="output-line warning">⏳ fetching from soundcloud api...</div>
+                <div class="output-line info">this may take a few seconds<span class="cursor"></span></div>
             </div>
-        </div>
 
-        <div class="card results" id="results">
-            <div class="result-count" id="resultCount"></div>
-            <div id="resultsList"></div>
+            <div class="output" id="results" style="display: none;">
+                <div id="resultsList"></div>
+            </div>
         </div>
     </div>
 
@@ -276,28 +291,24 @@
         const CORS_PROXY = 'https://corsproxy.io/?';
         let clientId = null;
 
-        function setUsername(username) {
-            document.getElementById('username').value = username;
-        }
-
-        function setLocation(location) {
+        function quickSearch(location) {
             document.getElementById('location').value = location;
+            search();
         }
 
         function showError(message) {
-            const errorEl = document.getElementById('error');
-            errorEl.textContent = message;
-            errorEl.classList.add('active');
-        }
-
-        function hideError() {
-            document.getElementById('error').classList.remove('active');
+            const resultsEl = document.getElementById('results');
+            resultsEl.innerHTML = `
+                <div class="output-line error">✗ error: ${message}</div>
+                <div class="output-line info">try again or check your input</div>
+            `;
+            resultsEl.style.display = 'block';
         }
 
         function showLoading() {
             document.getElementById('loading').classList.add('active');
             document.getElementById('searchBtn').disabled = true;
-            document.getElementById('results').classList.remove('active');
+            document.getElementById('results').style.display = 'none';
         }
 
         function hideLoading() {
@@ -384,18 +395,22 @@
             });
         }
 
-        function displayResults(users, location) {
+        function displayResults(users, location, username) {
             const resultsEl = document.getElementById('results');
-            const resultCountEl = document.getElementById('resultCount');
-            const resultsListEl = document.getElementById('resultsList');
 
             if (users.length === 0) {
-                resultCountEl.textContent = `No users found in "${location}"`;
-                resultsListEl.innerHTML = '<div class="no-results">😔 No users found. Try a different location!</div>';
+                resultsEl.innerHTML = `
+                    <div class="output-line error">✗ no users found in "${location}"</div>
+                    <div class="output-line info">0 matches from ${username}'s followings</div>
+                `;
             } else {
-                resultCountEl.textContent = `Found ${users.length} user${users.length === 1 ? '' : 's'} in "${location}"`;
+                let html = `
+                    <div class="output-line success">✓ found ${users.length} user${users.length === 1 ? '' : 's'} in "${location}"</div>
+                    <div class="output-line info">matches from ${username}'s followings</div>
+                    <br>
+                `;
 
-                resultsListEl.innerHTML = users.map((user, index) => {
+                users.forEach((user, index) => {
                     const name = user.full_name || user.username || user.permalink || 'Unknown';
                     const username = user.permalink || user.username || 'unknown';
                     const location = user.city ?
@@ -404,19 +419,20 @@
                     const followers = (user.followers_count || 0).toLocaleString();
                     const url = user.permalink_url || `https://soundcloud.com/${username}`;
 
-                    return `
-                        <div class="user-card">
-                            <div class="user-name">${index + 1}. ${name}</div>
-                            ${user.full_name && user.permalink ? `<div class="user-info">@${user.permalink}</div>` : ''}
-                            <div class="user-info">📍 ${location}</div>
-                            <div class="user-info">👥 ${followers} followers</div>
-                            <a href="${url}" target="_blank" class="user-link">${url}</a>
+                    html += `
+                        <div class="result-item">
+                            <div class="result-name">[${index + 1}] ${name}</div>
+                            <div class="result-meta">@${username}</div>
+                            <div class="result-meta">📍 ${location} · 👥 ${followers} followers</div>
+                            <a href="${url}" target="_blank" class="result-link">${url}</a>
                         </div>
                     `;
-                }).join('');
+                });
+
+                resultsEl.innerHTML = html;
             }
 
-            resultsEl.classList.add('active');
+            resultsEl.style.display = 'block';
         }
 
         async function search() {
@@ -424,34 +440,25 @@
             const location = document.getElementById('location').value.trim();
 
             if (!username || !location) {
-                showError('Please enter both username and location');
+                showError('username and location are required');
                 return;
             }
 
-            hideError();
             showLoading();
 
             try {
-                // Resolve user
                 const user = await resolveUser(username);
-
-                // Get followings
                 const followings = await getFollowings(user.id);
-
-                // Filter by location
                 const filtered = filterByLocation(followings, location);
-
-                // Display results
-                displayResults(filtered, location);
-
+                displayResults(filtered, location, username);
             } catch (error) {
-                showError('Error: ' + error.message);
+                showError(error.message);
             } finally {
                 hideLoading();
             }
         }
 
-        // Allow Enter key to submit
+        // Enter key to search
         document.getElementById('username').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') search();
         });
