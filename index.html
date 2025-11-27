@@ -346,7 +346,14 @@
 
     <script>
         const API_BASE = 'https://api-v2.soundcloud.com';
-        const CORS_PROXY = 'https://corsproxy.io/?';
+        // Try multiple CORS proxies
+        const CORS_PROXIES = [
+            'https://api.allorigins.win/raw?url=',
+            'https://corsproxy.io/?',
+            'https://api.codetabs.com/v1/proxy?quest='
+        ];
+        let proxyIndex = 0;
+
         // Fallback client IDs (rotate if one stops working)
         const FALLBACK_CLIENT_IDS = [
             '8VAIbDYccOVbB1QV2LSOSqGILp5pxFkE',
@@ -355,6 +362,10 @@
         ];
         let clientId = null;
         let fallbackIndex = 0;
+
+        function getCorsProxy() {
+            return CORS_PROXIES[proxyIndex % CORS_PROXIES.length];
+        }
 
         function quickSearch(location) {
             document.getElementById('location').value = location;
@@ -390,22 +401,23 @@
                     const testId = FALLBACK_CLIENT_IDS[i];
                     // Test if this client ID works
                     const testUrl = `${API_BASE}/resolve?url=https://soundcloud.com/soundcloud&client_id=${testId}`;
-                    const testResponse = await fetch(CORS_PROXY + encodeURIComponent(testUrl));
+                    const testResponse = await fetch(getCorsProxy() + encodeURIComponent(testUrl));
 
                     if (testResponse.ok) {
                         clientId = testId;
                         fallbackIndex = i;
-                        console.log('Using fallback client_id');
+                        console.log('Using fallback client_id:', testId.substring(0, 10) + '...');
                         return clientId;
                     }
                 } catch (e) {
+                    console.log('Fallback ID failed, trying next...');
                     continue;
                 }
             }
 
             // If fallbacks fail, try extracting from website
             try {
-                const response = await fetch(CORS_PROXY + encodeURIComponent('https://soundcloud.com'));
+                const response = await fetch(getCorsProxy() + encodeURIComponent('https://soundcloud.com'));
                 const html = await response.text();
 
                 const scriptUrls = html.match(/<script[^>]+src="([^"]+)"/g) || [];
@@ -415,7 +427,7 @@
                     if (!match || !match[1].includes('sndcdn.com')) continue;
 
                     try {
-                        const scriptResponse = await fetch(CORS_PROXY + encodeURIComponent(match[1]));
+                        const scriptResponse = await fetch(getCorsProxy() + encodeURIComponent(match[1]));
                         const scriptText = await scriptResponse.text();
                         const clientIdMatch = scriptText.match(/client_id[=:]"([a-zA-Z0-9]+)"/);
 
@@ -438,7 +450,7 @@
         async function resolveUser(username) {
             const cid = await getClientId();
             const url = `${API_BASE}/resolve?url=https://soundcloud.com/${username}&client_id=${cid}`;
-            const response = await fetch(CORS_PROXY + encodeURIComponent(url));
+            const response = await fetch(getCorsProxy() + encodeURIComponent(url));
 
             if (!response.ok) {
                 throw new Error('User not found');
@@ -453,7 +465,7 @@
             let nextHref = `${API_BASE}/users/${userId}/followings?client_id=${cid}&limit=200`;
 
             while (nextHref) {
-                const response = await fetch(CORS_PROXY + encodeURIComponent(nextHref));
+                const response = await fetch(getCorsProxy() + encodeURIComponent(nextHref));
 
                 if (!response.ok) {
                     throw new Error('Failed to fetch followings');
