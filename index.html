@@ -347,7 +347,14 @@
     <script>
         const API_BASE = 'https://api-v2.soundcloud.com';
         const CORS_PROXY = 'https://corsproxy.io/?';
+        // Fallback client IDs (rotate if one stops working)
+        const FALLBACK_CLIENT_IDS = [
+            '8VAIbDYccOVbB1QV2LSOSqGILp5pxFkE',
+            'iZIs9mchVcX5lhVRyQGGAYlNPVldzAoJ',
+            'cqjGlvfCo63EIJe22pjNDPkHSJhNlMy5'
+        ];
         let clientId = null;
+        let fallbackIndex = 0;
 
         function quickSearch(location) {
             document.getElementById('location').value = location;
@@ -377,6 +384,26 @@
         async function getClientId() {
             if (clientId) return clientId;
 
+            // Try fallback client IDs first (faster and more reliable)
+            for (let i = fallbackIndex; i < FALLBACK_CLIENT_IDS.length; i++) {
+                try {
+                    const testId = FALLBACK_CLIENT_IDS[i];
+                    // Test if this client ID works
+                    const testUrl = `${API_BASE}/resolve?url=https://soundcloud.com/soundcloud&client_id=${testId}`;
+                    const testResponse = await fetch(CORS_PROXY + encodeURIComponent(testUrl));
+
+                    if (testResponse.ok) {
+                        clientId = testId;
+                        fallbackIndex = i;
+                        console.log('Using fallback client_id');
+                        return clientId;
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+
+            // If fallbacks fail, try extracting from website
             try {
                 const response = await fetch(CORS_PROXY + encodeURIComponent('https://soundcloud.com'));
                 const html = await response.text();
@@ -394,6 +421,7 @@
 
                         if (clientIdMatch) {
                             clientId = clientIdMatch[1];
+                            console.log('Extracted client_id from website');
                             return clientId;
                         }
                     } catch (e) {
@@ -403,7 +431,7 @@
 
                 throw new Error('Could not extract client_id');
             } catch (error) {
-                throw new Error('Failed to get SoundCloud API access: ' + error.message);
+                throw new Error('Failed to get SoundCloud API access. Try again later.');
             }
         }
 
